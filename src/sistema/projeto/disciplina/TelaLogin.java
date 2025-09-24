@@ -2,6 +2,12 @@
 package sistema.projeto.disciplina;
 
 import sistema.projeto.disciplina.TelaCadastro;
+import sistema.projeto.disciplina.TelaUsuarioPrincipal;
+import javax.swing.JOptionPane;
+import sistema.projeto.disciplina.dao.UsuarioDAO;
+import sistema.projeto.disciplina.model.Usuario;
+
+
 
 /**
  *
@@ -9,16 +15,11 @@ import sistema.projeto.disciplina.TelaCadastro;
  */
 public class TelaLogin extends javax.swing.JFrame {
 
-    /**
-     * Creates new form TelaLogin
-     */
+    
     public TelaLogin() {
         initComponents();
         defaultEchoChar = fieldPass.getEchoChar();
         setLocationRelativeTo(null); // centraliza no meio da tela
-        // usa GridBagLayout para centralizar o painel
-        getContentPane().setLayout(new java.awt.GridBagLayout());
-        getContentPane().add(jPanel1, new java.awt.GridBagConstraints());
     }
 
     /**
@@ -43,7 +44,6 @@ public class TelaLogin extends javax.swing.JFrame {
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("Tela Login");
         setMinimumSize(new java.awt.Dimension(480, 320));
-        setPreferredSize(new java.awt.Dimension(600, 400));
 
         fieldPass.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -58,6 +58,11 @@ public class TelaLogin extends javax.swing.JFrame {
         jLabel2.setText("Senha");
 
         btnLogin.setText("Login");
+        btnLogin.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnLoginActionPerformed(evt);
+            }
+        });
 
         jLabel1.setText("Usuário");
 
@@ -88,11 +93,11 @@ public class TelaLogin extends javax.swing.JFrame {
             .addGroup(jPanel1Layout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                        .addGroup(jPanel1Layout.createSequentialGroup()
+                    .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                        .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel1Layout.createSequentialGroup()
                             .addComponent(btnSignin)
-                            .addGap(18, 18, 18)
-                            .addComponent(btnLogin))
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                            .addComponent(btnLogin, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                         .addGroup(jPanel1Layout.createSequentialGroup()
                             .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                                 .addComponent(jLabel2)
@@ -160,8 +165,6 @@ public class TelaLogin extends javax.swing.JFrame {
     }//GEN-LAST:event_fieldPassActionPerformed
 
     private void btnSigninActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnSigninActionPerformed
-        // Vai para a tela de Criar Conta e fecha a Tela Login
-        
         // Guarda o estado da TelaLogin (normal ou fullscreen)
         int state = this.getExtendedState();
        
@@ -179,10 +182,42 @@ public class TelaLogin extends javax.swing.JFrame {
         // Se o check estiver apertado ele mostra senha, senão ele ocult
         if (showPass.isSelected()) {
         fieldPass.setEchoChar((char) 0);     // mostra caracteres
-    } else {
-        fieldPass.setEchoChar(defaultEchoChar); // volta ao bullet padrão
+        } else {
+        fieldPass.setEchoChar(defaultEchoChar); // volta ao padrão
     }//GEN-LAST:event_showPassActionPerformed
     }
+    private void btnLoginActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnLoginActionPerformed
+         String login = fieldUser.getText().trim();
+    String senha = new String(fieldPass.getPassword()).trim();
+
+    if (login.isEmpty() || senha.isEmpty()) {
+        JOptionPane.showMessageDialog(this, "Informe login e senha.",
+                "Validação", JOptionPane.WARNING_MESSAGE);
+        return;
+    }
+
+    try {
+        UsuarioDAO dao = new UsuarioDAO();
+        Usuario autenticado = dao.autenticar(login, senha); // <- usa 'dao' e 'senha'
+
+        if (autenticado != null) {
+            // (opcional) manter o mesmo estado de janela
+            int state = this.getExtendedState();
+            this.dispose(); // fecha a TelaLogin
+
+            TelaUsuarioPrincipal tela = new TelaUsuarioPrincipal(autenticado);
+            tela.setLocationRelativeTo(null);
+            tela.setExtendedState(state);
+            tela.setVisible(true);
+        } else {
+            JOptionPane.showMessageDialog(this, "Login ou senha inválidos!");
+        }
+    } catch (RuntimeException ex) {
+        JOptionPane.showMessageDialog(this, "Erro ao autenticar: " + ex.getMessage(),
+                "Erro", JOptionPane.ERROR_MESSAGE);
+    }
+    }//GEN-LAST:event_btnLoginActionPerformed
+
     /**
      * @param args the command line arguments
      */
@@ -218,9 +253,8 @@ public class TelaLogin extends javax.swing.JFrame {
         });
     }
     
-// Variáveis de apoio 
+    // Variáveis de apoio 
     private char defaultEchoChar;
-
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnLogin;
     private javax.swing.JButton btnSignin;

@@ -4,6 +4,9 @@ package sistema.projeto.disciplina;
 import javax.swing.JFrame;
 import java.awt.Color;
 import javax.swing.JOptionPane;
+import sistema.projeto.disciplina.dao.UsuarioDAO;
+import sistema.projeto.disciplina.model.Usuario;
+import org.mindrot.jbcrypt.BCrypt;
 
 
 /**
@@ -18,22 +21,20 @@ public class TelaCadastro extends javax.swing.JFrame {
     public TelaCadastro() {
         initComponents();
         setTitle("Criar Conta");
-    setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // fecha o app se encerrar
+    setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     setLocationRelativeTo(null);
+
+    // configura o label de erro
     lblErroSenha.setForeground(Color.RED);
     lblErroSenha.setVisible(false);
-    
-    // Centralizar jPanel1 mesmo em fullscreen, sem mexer no bloco gerado 
+
+    // Centralizar jPanel1 
     javax.swing.JPanel root = new javax.swing.JPanel(new java.awt.BorderLayout());
-    javax.swing.JPanel top = new javax.swing.JPanel(
-        new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 8, 8)
-    );
-    top.add(btnVoltar);
     javax.swing.JPanel center = new javax.swing.JPanel(new java.awt.GridBagLayout());
     jPanel1.setPreferredSize(jPanel1.getPreferredSize());
     center.add(jPanel1, new java.awt.GridBagConstraints());
-    root.add(top, java.awt.BorderLayout.PAGE_START);
     root.add(center, java.awt.BorderLayout.CENTER);
+
     setContentPane(root);
     pack();
     
@@ -98,7 +99,7 @@ public class TelaCadastro extends javax.swing.JFrame {
         lblErroSenha.setForeground(new java.awt.Color(153, 0, 0));
         lblErroSenha.setText("Senhas diferentes");
 
-        boxCargo.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Colaborador", "Gerente", "Administrador" }));
+        boxCargo.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Colaborador", "Gestor", "Administrador" }));
         boxCargo.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 boxCargoActionPerformed(evt);
@@ -269,96 +270,95 @@ public class TelaCadastro extends javax.swing.JFrame {
         //Ler valores dos campos
         String nome      = txtNome.getText().trim();
         String email     = txtEmail.getText().trim();
-        String usuario   = txtUsuario.getText().trim();     // DPS COLOCAR VALIDAÇAO C BASE AO BANCO DE DADOS
-        String cpf       = txtCPF.getText().replaceAll("\\D", "");         // só dígitos
-        String telefone  = txtTelefone.getText().replaceAll("\\D", "");    // só dígitos
-
+        String usuario   = txtUsuario.getText().trim();     
+        String cpf       = txtCPF.getText().replaceAll("\\D", "");         
+        String telefone  = txtTelefone.getText().replaceAll("\\D", "");    
+        String cargo = boxCargo.getSelectedItem().toString();
         String senha     = new String(fieldSenha.getPassword());
         String confirma  = new String(fieldConfirmSenha.getPassword());
-
-        // Validar campos obrigatórios simples
-        if (nome.isEmpty() || email.isEmpty() || usuario.isEmpty() ||
+        
+        // Validações
+    if (nome.isEmpty() || email.isEmpty() || usuario.isEmpty() ||
         cpf.isEmpty()  || telefone.isEmpty() || senha.isEmpty() || confirma.isEmpty()) {
-        JOptionPane.showMessageDialog(this, "Preencha todos os campos obrigatórios e/ou corretamente.", 
-                                      "Campos obrigatórios", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        // Validar formato e-mail
-        if (!email.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) {
-        JOptionPane.showMessageDialog(this, "E-mail inválido.", 
+        JOptionPane.showMessageDialog(this, "Preencha todos os campos!", 
                                       "Validação", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
+        return;
+    }
 
-        //  Validar telefone
-        if (!telefone.matches("^\\d{8,15}$")) {
-        JOptionPane.showMessageDialog(this, "Telefone deve conter apenas dígitos (8 a 15).", 
-                                      "Validação", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
+    if (!email.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) {
+        JOptionPane.showMessageDialog(this, "E-mail inválido.", "Validação", JOptionPane.WARNING_MESSAGE);
+        return;
+    }
 
-        // 5) Validar CPF
-        if (!isCpfValido(cpf)) {
-        JOptionPane.showMessageDialog(this, "CPF inválido.", 
-                                      "Validação", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
+    if (!telefone.matches("^\\d{8,15}$")) {
+        JOptionPane.showMessageDialog(this, "Telefone inválido (8 a 15 dígitos).", "Validação", JOptionPane.WARNING_MESSAGE);
+        return;
+    }
 
-        // 6) Validar senha
-        if (!senha.equals(confirma)) {
+    if (!isCpfValido(cpf)) {
+        JOptionPane.showMessageDialog(this, "CPF inválido.", "Validação", JOptionPane.WARNING_MESSAGE);
+        return;
+    }
+
+    if (!senha.equals(confirma)) {
         lblErroSenha.setText("Senhas Diferentes");
         lblErroSenha.setVisible(true);
-            return;
-        } else {
-            lblErroSenha.setVisible(false);
-        }
-
-        // -> Se chegou aqui, está tudo ok: prossiga (ex.: salvar no banco)
-        int option = JOptionPane.showConfirmDialog(
-        this,
-        "Cadastro válido!",
-        "Sucesso",
-        JOptionPane.DEFAULT_OPTION,
-        JOptionPane.INFORMATION_MESSAGE
-        );
-
-        // Se usuário clicou em OK
-            if (option == JOptionPane.OK_OPTION) {
-                this.dispose(); // fecha TelaCadastro
-                TelaLogin login = new TelaLogin();
-                login.setLocationRelativeTo(null); // centraliza
-                login.setVisible(true);
-    }//GEN-LAST:event_btnSalvarActionPerformed
+        return;
+    } else {
+        lblErroSenha.setVisible(false);
     }
+    
+    // Chama o DAO para salvar no banco
+    Usuario usuarioObj = new Usuario();         // construtor vazio
+    usuarioObj.setNome(nome);
+    usuarioObj.setEmail(email);
+    usuarioObj.setUsuario(usuario);
+    usuarioObj.setCpf(cpf);
+    usuarioObj.setTelefone(telefone);
+    usuarioObj.setCargo(cargo);
+    usuarioObj.setSenhaHash(senha);                 // o DAO fará o hash
+
+    UsuarioDAO dao = new UsuarioDAO();
+        try {
+        dao.salvar(usuarioObj); // método retorna void> apenas executa
+        JOptionPane.showMessageDialog(this, "Cadastro realizado com sucesso!");
+        this.dispose();
+        TelaLogin login = new TelaLogin();
+        login.setLocationRelativeTo(null);
+        login.setVisible(true);
+        } catch (Exception ex) {
+        JOptionPane.showMessageDialog(this, "Erro ao salvar usuário: " + ex.getMessage(),
+                                  "Erro", JOptionPane.ERROR_MESSAGE);
+}       
+    }//GEN-LAST:event_btnSalvarActionPerformed
+
     /**
      * @param args the command line arguments
      */
     public static void main(String args[]) {
         /* Set the Nimbus look and feel */
-        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
-         */
         try {
-            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
+            for (javax.swing.UIManager.LookAndFeelInfo info :
+                    javax.swing.UIManager.getInstalledLookAndFeels()) {
                 if ("Nimbus".equals(info.getName())) {
                     javax.swing.UIManager.setLookAndFeel(info.getClassName());
                     break;
                 }
             }
         } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(TelaCadastro.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(TelaCadastro.class.getName())
+                    .log(java.util.logging.Level.SEVERE, null, ex);
         } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(TelaCadastro.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(TelaCadastro.class.getName())
+                    .log(java.util.logging.Level.SEVERE, null, ex);
         } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(TelaCadastro.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(TelaCadastro.class.getName())
+                    .log(java.util.logging.Level.SEVERE, null, ex);
         } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(TelaCadastro.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(TelaCadastro.class.getName())
+                    .log(java.util.logging.Level.SEVERE, null, ex);
         }
-        //</editor-fold>
 
-        /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
                 new TelaCadastro().setVisible(true);
@@ -366,10 +366,9 @@ public class TelaCadastro extends javax.swing.JFrame {
         });
     }
     
-    // Validador de CPF 
+    // Validador de CPF
     private boolean isCpfValido(String cpf) {
         if (cpf == null || !cpf.matches("\\d{11}")) return false;
-   
         if (cpf.chars().distinct().count() == 1) return false;
 
         try {
@@ -387,7 +386,8 @@ public class TelaCadastro extends javax.swing.JFrame {
         } catch (Exception e) {
             return false;
         }
-    }
+}
+
 
    
     // Variables declaration - do not modify//GEN-BEGIN:variables
