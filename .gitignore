@@ -1,19 +1,15 @@
-# macOS
-.DS_Store
-
-# NetBeans
-nbproject/private/
 build/
 dist/
 nbbuild/
 nbi/
 *.bak
-
-# Java
 *.class
 *.log
-
-# IDEs opcionais
 .idea/
 *.iml
 .vscode/
+config/db.properties
+.DS_Store
+target/
+out/
+nbproject/private/

@@ -136,6 +136,20 @@ public class TelaUsuarioPrincipal extends javax.swing.JFrame {
        this.usuarioLogado = usuarioLogado;
        
         initComponents();
+       boolean demoMode = "true".equalsIgnoreCase(System.getProperty("EPROJ_DEMO"));
+       if (demoMode) {
+           javax.swing.JOptionPane.showMessageDialog(
+                   this,
+                   "Modo demonstração: banco de dados não configurado.\nAlgumas funções (CRUD e dashboard) estão desativadas.",
+                   "Demo mode",
+                   javax.swing.JOptionPane.INFORMATION_MESSAGE
+           );
+
+           setupCards();
+           panelEditar.setVisible(false);
+           aplicarRegrasDeAcessoUI();
+           return;
+       }
         carregarTabelaProjetos();
         setupCards();
         
